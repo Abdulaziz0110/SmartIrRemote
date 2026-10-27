@@ -325,7 +325,7 @@ class SettingsViewModel @Inject constructor(
         var imported = 0; var skipped = 0
         for (uri in uris) {
             try {
-                val r = profiles.importStream { ctx.contentResolver.openInputStream(uri) }
+                val r = profiles.importStream(open = { ctx.contentResolver.openInputStream(uri) })
                 if (r.error != null) messages.emit(ctx.getString(R.string.msg_import_failed, r.error))
                 imported += r.imported; skipped += r.skipped
             } catch (e: Exception) { messages.emit(ctx.getString(R.string.msg_import_failed, e.message ?: "")) }
