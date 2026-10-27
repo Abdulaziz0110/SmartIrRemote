@@ -12,14 +12,32 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Extract project ZIP
+      - name: Extract Android project
         run: |
           unzip -q SmartIrRemote.zip -d source
 
       - name: Locate Android project
         run: |
-          find source -name settings.gradle.kts -o -name settings.gradle
-          find source -name gradlew
+          echo "Searching for Android project..."
+          find source -type f \( -name "settings.gradle.kts" -o -name "settings.gradle" \)
+          find source -type f -name "ViewModels.kt"
+
+      - name: Apply fixed ViewModels.kt
+        run: |
+          TARGET="$(find source -type f -path '*/app/src/main/java/com/smartir/remote/ui/screens/ViewModels.kt' -print -quit)"
+
+          if [ -z "$TARGET" ]; then
+            echo "ERROR: Original ViewModels.kt not found inside ZIP"
+            exit 1
+          fi
+
+          if [ ! -f "ViewModels.kt" ]; then
+            echo "ERROR: Fixed ViewModels.kt not found in repository root"
+            exit 1
+          fi
+
+          cp ViewModels.kt "$TARGET"
+          echo "Fixed ViewModels.kt applied successfully"
 
       - name: Set up Java
         uses: actions/setup-java@v4
@@ -32,23 +50,27 @@ jobs:
         with:
           gradle-version: '8.13'
 
-      - name: Build APK
+      - name: Build Debug APK
         run: |
           PROJECT_DIR="$(dirname "$(find source -type f -name settings.gradle.kts -print -quit)")"
+
           if [ -z "$PROJECT_DIR" ]; then
             PROJECT_DIR="$(dirname "$(find source -type f -name settings.gradle -print -quit)")"
           fi
+
           if [ -z "$PROJECT_DIR" ]; then
-            echo "Android project not found"
+            echo "ERROR: Android project not found"
             exit 1
           fi
+
+          echo "Project directory: $PROJECT_DIR"
           cd "$PROJECT_DIR"
           gradle assembleDebug
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: Android-APK
+          name: SmartIrRemote-APK
           path: source/**/build/outputs/apk/debug/*.apk
           if-no-files-found: error
           
